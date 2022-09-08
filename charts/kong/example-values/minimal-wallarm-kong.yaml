@@ -1,0 +1,14 @@
+wallarm:
+  enabled: true
+  token: "" # Put your node token here
+
+image:
+  repository: wallarm/kong-oss-preview
+  tag: "2.8-ubuntu-4.2"
+
+ingressController:
+  enabled: true
+  installCRDs: false
+  image:
+    repository: kong/kubernetes-ingress-controller
+    tag: "2.5"
