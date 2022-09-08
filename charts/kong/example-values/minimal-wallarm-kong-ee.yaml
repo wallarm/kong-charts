@@ -1,0 +1,25 @@
+wallarm:
+  enabled: true
+  token: "" # Put your node token here
+
+image:
+  repository: wallarm/kong-ee-preview
+  tag: "3.0-ubuntu-4.2"
+  # See instructions regarding enterprise licenses at https://github.com/Kong/charts/blob/master/charts/kong/README.md#kong-enterprise-license
+  license_secret: kong-enterprise-license # CHANGEME
+  vitals:
+    enabled: false
+  portal:
+    enabled: false
+  rbac:
+    enabled: false
+
+enterprise:
+  enabled: true
+
+ingressController:
+  enabled: true
+  installCRDs: false
+  image:
+    repository: kong/kubernetes-ingress-controller
+    tag: "2.6"
