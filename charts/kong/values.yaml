@@ -99,8 +99,10 @@ extraLabels: {}
 
 # Specify Kong's Docker image and repository details here
 image:
-  repository: kong
-  tag: "2.7"
+  repository: wallarm/kong-oss-preview
+  tag: "2.7-ubuntu-4.2"
+  # repository: kong
+  # tag: "2.7"
   # Kong Enterprise
   # repository: kong/kong-gateway
   # tag: "2.7.0.0-alpine"
@@ -411,7 +413,8 @@ ingressController:
   enabled: true
   image:
     repository: kong/kubernetes-ingress-controller
-    tag: "2.2"
+    tag: "2.1.1"
+    pullPolicy: IfNotPresent
     # Optionally set a semantic version for version-gated features. This can normally
     # be left unset. You only need to set this if your tag is not a semver string,
     # such as when you are using a "next" tag. Set this to the effective semantic
@@ -924,3 +927,98 @@ extraSecrets: []
 # - name: my-secret
 #   mountPath: /mount/to/my/location
 #   subPath: my-subpath # Optional, if you wish to mount a single key and not the entire ConfigMap
+
+# Wallarm configuration (https://docs.wallarm.com/)
+wallarm:
+  image:
+    tag: "4.2.1-1"
+  enabled: true
+  apiHost: api.wallarm.com
+  apiPort: 443
+  apiSSL: true
+  token: ""
+  fallback: "on"
+  tarantool:
+    kind: Deployment
+    service:
+      annotations: {}
+    replicaCount: 1
+    arena: "0.2"
+    livenessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 1
+    resources: {}
+  heartbeat:
+    resources: {}
+  wallarm-appstructure:
+    resources: {}
+  wallarm-antibot:
+    resources: {}
+  metrics:
+    port: 18080
+    enabled: false
+
+    service:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /wallarm-metrics
+        prometheus.io/port: "18080"
+
+      # clusterIP: ""
+
+      ## -- List of IP addresses at which the stats-exporter service is available
+      ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
+      ##
+      externalIPs: []
+
+      # loadBalancerIP: ""
+      loadBalancerSourceRanges: []
+      servicePort: 18080
+      type: ClusterIP
+      # externalTrafficPolicy: ""
+      # nodePort: ""
+
+  ## If HPA is used, the resources.requests.{cpu,memory} must be set in the following values:
+  ## addnode, exportenv, synccloud, collectd, cron. Otherwise HPA will not work properly.
+  ## Important note: at the time addnode.resources, exportenv.resources and cron.resources are shared between
+  ## 2 pods: wallarm-ingress-controller and wallarm-ingress-controller-tarantool pod.
+  ## Means that in case of values changing - BOTH pods (controller and tarantool) will be redeployed.
+  addnode:
+    resources: {}
+  cron:
+    jobs:
+      exportEnvironment:
+        schedule: "0 */1 * * *"
+        timeout: 10m
+      exportAttacks:
+        schedule: "* * * * *"
+        timeout: 3h
+      exportCounters:
+        schedule: "* * * * *"
+        timeout: 11m
+      bruteDetect:
+        schedule: "* * * * *"
+        timeout: 6m
+      syncIpLists:
+        schedule: "* * * * *"
+        timeout: 3h
+      exportMetrics:
+        schedule: "* * * * *"
+        timeout: 3h
+      syncIpListsSource:
+        schedule: "*/5 * * * *"
+        timeout: 3h
+      syncMarkers:
+        schedule: "* * * * *"
+        timeout: 1h
+    resources: {}
+  exportenv:
+    resources: {}
+  synccloud:
+    wallarm_syncnode_interval_sec: 120
+    resources: {}
+  collectd:
+    resources: {}

@@ -97,6 +97,23 @@ spec:
         {{- if (and (not (eq .Values.env.database "off")) .Values.waitImage.enabled) }}
         {{- include "kong.wait-for-db" . | nindent 6 }}
         {{- end }}
+      {{- if .Values.wallarm.enabled }}
+      {{ include "wallarm.initContainer.addNode" . | nindent 6 }}
+      {{ include "wallarm.initContainer.exportEnv" . | nindent 6 }}
+      {{- end }}
+      - name: chmod
+        image: busybox:1.34.1
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+        {{ toYaml .Values.containerSecurityContext | nindent 10 }}
+        command:
+        - "chmod"
+        - "-R"
+        - "0777"
+        - "/var/lib/wallarm-acl"
+        volumeMounts:
+        - mountPath: /var/lib/wallarm-acl
+          name: wallarm-acl
       {{- if .Values.deployment.hostAliases }}
       hostAliases:
         {{- toYaml .Values.deployment.hostAliases | nindent 6 }}
@@ -255,16 +272,34 @@ spec:
           {{- end}}
           protocol: TCP
         {{- end }}
+        {{- if .Values.wallarm.enabled }}
+        - name: wallarm-metrics
+          containerPort: {{ .Values.wallarm.metrics.port }}
+          protocol: TCP
+        {{- end }}
         {{- end }}
         volumeMounts:
         {{- include "kong.volumeMounts" . | nindent 10 }}
         {{- include "kong.userDefinedVolumeMounts" . | nindent 10 }}
+        {{- if .Values.wallarm.enabled }}
+          - name: wallarm
+            mountPath: "/etc/wallarm"
+          - name: wallarm-acl
+            mountPath: "/var/lib/wallarm-acl"
+          - name: wallarm-cache
+            mountPath: "/var/lib/nginx/wallarm"
+        {{- end }}
         readinessProbe:
 {{ toYaml .Values.readinessProbe | indent 10 }}
         livenessProbe:
 {{ toYaml .Values.livenessProbe | indent 10 }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
+        {{- if .Values.wallarm.enabled }}
+        {{ include "wallarm.container.cron" . | nindent 6 }}
+        {{ include "wallarm.container.collectd" . | nindent 6 }}
+        {{ include "wallarm.container.syncnode" . | nindent 6 }}
+        {{- end }}
         {{- end }} {{/* End of Kong container spec */}}
     {{- if .Values.affinity }}
       affinity:
@@ -286,4 +321,15 @@ spec:
       volumes:
       {{- include "kong.volumes" . | nindent 8 -}}
       {{- include "kong.userDefinedVolumes" . | nindent 8 -}}
+      {{- if .Values.wallarm.enabled }}
+        - name: wallarm
+          emptyDir: {}
+        - name: wallarm-acl
+          emptyDir: {}
+        - name: wallarm-cache
+          emptyDir: {}
+        - name: wallarm-cron
+          configMap:
+            name: {{ template "wallarm.controllerCronConfig" . }}
+      {{- end }}
 {{- end }}

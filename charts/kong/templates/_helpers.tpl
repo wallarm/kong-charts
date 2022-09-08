@@ -59,6 +59,180 @@ Create the name of the service account to use
 {{- end -}}
 {{- end -}}
 
+{{- define "wallarm.tarantoolPort" -}}3313{{- end -}}
+{{- define "wallarm.tarantoolName" -}}{{ .Release.Name }}-{{ template "kong.name" . }}-wallarm-tarantool{{- end -}}
+{{- define "wallarm.tarantoolCronConfig" -}}{{ template "wallarm.tarantoolName" . }}-cron{{- end -}}
+{{- define "wallarm.controllerCronConfig" -}}{{ include "kong.fullname" . | lower }}-cron{{- end -}}
+{{- define "wallarm.wallarmSecret" -}}{{ .Release.Name }}-{{ template "kong.name" . }}-secret{{- end -}}
+
+{{- define "wallarm.initContainer.addNode" -}}
+- name: addnode
+{{- if .Values.wallarm.addnode.image }}
+  {{- with .Values.wallarm.addnode.image }}
+  image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+  image: "wallarm/ingress-ruby:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+  imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+  command:
+  - sh
+  - -c
+{{- if eq .Values.wallarm.fallback "on"}}
+{{ print  "- /opt/wallarm/ruby/usr/share/wallarm-common/synccloud --one-time && /opt/wallarm/ruby/usr/share/wallarm-common/sync-ip-lists --one-time -l STDOUT && /opt/wallarm/ruby/usr/share/wallarm-common/sync-ip-lists-source --one-time -l STDOUT || true" | indent 2}}
+{{- else }}
+{{ print  "- /opt/wallarm/ruby/usr/share/wallarm-common/synccloud --one-time && /opt/wallarm/ruby/usr/share/wallarm-common/sync-ip-lists --one-time -l STDOUT && /opt/wallarm/ruby/usr/share/wallarm-common/sync-ip-lists-source --one-time -l STDOUT" | indent 2}}
+{{- end}}
+  env:
+  - name: WALLARM_API_HOST
+    value: {{ .Values.wallarm.apiHost | default "api.wallarm.com" }}
+  - name: WALLARM_API_PORT
+    value: {{ .Values.wallarm.apiPort | default "443" | quote }}
+  - name: WALLARM_API_USE_SSL
+    {{- if or (.Values.wallarm.apiSSL) (eq (.Values.wallarm.apiSSL | toString) "<nil>") }}
+    value: "true"
+    {{- else }}
+    value: "false"
+    {{- end }}
+  - name: WALLARM_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        key: token
+        name: {{ template "wallarm.wallarmSecret" . }}
+  - name: WALLARM_SYNCNODE_OWNER
+    value: kong
+  - name: WALLARM_SYNCNODE_GROUP
+    value: kong
+  volumeMounts:
+  - mountPath: /etc/wallarm
+    name: wallarm
+  - mountPath: /var/lib/wallarm-acl
+    name: wallarm-acl
+  securityContext:
+  {{ toYaml .Values.containerSecurityContext | nindent 4 }}
+  resources:
+{{ toYaml .Values.wallarm.addnode.resources | indent 4 }}
+{{- end -}}
+
+{{- define "wallarm.initContainer.exportEnv" -}}
+- name: exportenv
+{{- if .Values.wallarm.exportenv.image }}
+  {{- with .Values.wallarm.exportenv.image }}
+  image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+  image: "wallarm/ingress-ruby:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+  imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+  command: ["sh", "-c", "timeout 10m /opt/wallarm/ruby/usr/share/wallarm-common/export-environment -l STDOUT || true"]
+  env:
+  - name: WALLARM_COMPONENT_NAME
+    value: "wallarm-kong-ingress-controller-{{ .Chart.AppVersion }}"
+  - name: WALLARM_COMPONENT_VERSION
+    value: {{ .Chart.Version | quote }}
+  volumeMounts:
+  - mountPath: /etc/wallarm
+    name: wallarm
+  securityContext:
+  {{ toYaml .Values.containerSecurityContext | nindent 4 }}
+  resources:
+{{ toYaml .Values.wallarm.exportenv.resources | indent 4 }}
+{{- end -}}
+
+{{- define "wallarm.container.cron" -}}
+- name: cron
+{{- if .Values.wallarm.cron.image }}
+  {{- with .Values.wallarm.cron.image }}
+  image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+  image: "wallarm/ingress-ruby:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+  imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+  command: ["/bin/dumb-init", "--"]
+  args: ["/bin/supercronic", "-json", "/opt/cron/crontab"]
+  env:
+  - name: WALLARM_COMPONENT_NAME
+    value: "wallarm-kong-ingress-controller-{{ .Chart.AppVersion }}"
+  - name: WALLARM_COMPONENT_VERSION
+    value: {{ .Chart.Version | quote }}
+  volumeMounts:
+  - mountPath: /etc/wallarm
+    name: wallarm
+  - mountPath: /var/lib/wallarm-acl
+    name: wallarm-acl
+  - mountPath: /opt/cron/crontab
+    name: wallarm-cron
+    subPath: crontab
+    readOnly: true
+  securityContext:
+  {{ toYaml .Values.containerSecurityContext | nindent 4 }}
+  resources:
+{{ toYaml .Values.wallarm.cron.resources | indent 4 }}
+{{- end -}}
+
+{{- define "wallarm.container.syncnode" -}}
+- name: synccloud
+{{- if .Values.wallarm.synccloud.image }}
+  {{- with .Values.wallarm.synccloud.image }}
+  image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+  image: "wallarm/ingress-ruby:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+  imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+  command: ["/bin/dumb-init", "--"]
+  args: ["/opt/wallarm/ruby/usr/share/wallarm-common/syncnode", "-p", "-r", "120", "-l", "STDOUT", "-L", "DEBUG"]
+  env:
+  - name: WALLARM_API_HOST
+    value: {{ .Values.wallarm.apiHost | default "api.wallarm.com" }}
+  - name: WALLARM_API_PORT
+    value: {{ .Values.wallarm.apiPort | default "443" | quote }}
+  - name: WALLARM_API_USE_SSL
+    {{- if or (.Values.wallarm.apiSSL) (eq (.Values.wallarm.apiSSL | toString) "<nil>") }}
+    value: "true"
+    {{- else }}
+    value: "false"
+    {{- end }}
+  - name: WALLARM_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        key: token
+        name: {{ template "wallarm.wallarmSecret" . }}
+  - name: WALLARM_SYNCNODE_OWNER
+    value: kong
+  - name: WALLARM_SYNCNODE_GROUP
+    value: kong
+  - name: WALLARM_SYNCNODE_INTERVAL
+    value: "{{ .Values.wallarm.synccloud.wallarm_syncnode_interval_sec }}"
+  volumeMounts:
+  - mountPath: /etc/wallarm
+    name: wallarm
+  securityContext:
+  {{ toYaml .Values.containerSecurityContext | nindent 4 }}
+  resources:
+{{ toYaml .Values.wallarm.synccloud.resources | indent 4 }}
+{{- end -}}
+
+{{- define "wallarm.container.collectd" -}}
+- name: collectd
+{{- if .Values.wallarm.collectd.image }}
+  {{- with .Values.wallarm.collectd.image }}
+  image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+  image: "wallarm/ingress-collectd:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+  imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+  volumeMounts:
+    - name: wallarm
+      mountPath: /etc/wallarm
+  securityContext:
+  {{ toYaml .Values.containerSecurityContext | nindent 4 }}
+  resources:
+{{ toYaml .Values.wallarm.collectd.resources | indent 4 }}
+{{- end -}}
+
 {{/*
 Create Ingress resource for a Kong service
 */}}
@@ -437,7 +611,7 @@ The name of the service used for the ingress controller's validation webhook
     secretName: {{ .Values.ingressController.admissionWebhook.certificate.secretName }}
     {{- else }}
     secretName: {{ template "kong.fullname" . }}-validation-webhook-keypair
-    {{- end }}  
+    {{- end }}
 {{- end }}
 {{- range $secretVolume := .Values.secretVolumes }}
 - name: {{ . }}
@@ -533,7 +707,7 @@ The name of the service used for the ingress controller's validation webhook
   image: {{ include "kong.getRepoTag" .Values.image }}
   imagePullPolicy: {{ .Values.image.pullPolicy }}
   securityContext:
-  {{ toYaml .Values.containerSecurityContext | nindent 4 }} 
+  {{ toYaml .Values.containerSecurityContext | nindent 4 }}
   env:
   {{- include "kong.env" . | nindent 2 }}
 {{/* TODO the prefix override is to work around https://github.com/Kong/charts/issues/295
@@ -558,7 +732,7 @@ The name of the service used for the ingress controller's validation webhook
 {{- define "kong.controller-container" -}}
 - name: ingress-controller
   securityContext:
-{{ toYaml .Values.containerSecurityContext | nindent 4 }}  
+{{ toYaml .Values.containerSecurityContext | nindent 4 }}
   args:
   {{ if .Values.ingressController.args}}
   {{- range $val := .Values.ingressController.args }}
@@ -625,7 +799,26 @@ Use the Pod security context defined in Values or set the UID by default
 {{ .Values.securityContext | toYaml }}
 {{- end -}}
 
+{{- define "wallarm.injected_config" -}}
+- name: KONG_NGINX_HTTP_UPSTREAM
+  value: >-
+    wallarm_tarantool {
+        server {{ include "kong.fullname" . }}-wallarm-tarantool:3313 max_fails=0 fail_timeout=0 max_conns=16;
+        keepalive 16;
+        keepalive_requests 100;
+    }
+    wallarm_tarantool_upstream wallarm_tarantool
+- name: KONG_NGINX_PROXY_WALLARM_MODE
+  {{- if .Values.wallarm.enabled }}
+  value: "monitoring"
+  {{- else }}
+  value: "off"
+  {{- end }}
+
+{{- end -}}
+
 {{- define "kong.no_daemon_env" -}}
+{{- template "wallarm.injected_config" . }}
 {{- template "kong.env" . }}
 - name: KONG_NGINX_DAEMON
   value: "off"
