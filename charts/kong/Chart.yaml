@@ -3,7 +3,11 @@ description: The Cloud-Native Ingress and API-management
 engine: gotpl
 home: https://konghq.com/
 icon: https://s3.amazonaws.com/downloads.kong/universe/assets/icon-kong-inc-large.png
+keywords:
+  - wallarm
 maintainers:
+- name: Wallarm Support
+  email: support@wallarm.com
 - name: hbagdi
   email: harry@konghq.com
 - name: rainest
@@ -11,7 +15,7 @@ maintainers:
 name: kong
 sources:
 - https://github.com/Kong/charts/tree/main/charts/kong
-version: 2.13.1
+version: 4.2.4
 appVersion: "3.0"
 dependencies:
 - name: postgresql
