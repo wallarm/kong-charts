@@ -12,7 +12,7 @@ maintainers:
   email: harry@konghq.com
 - name: rainest
   email: traines@konghq.com
-name: kong
+name: kong-preview
 sources:
 - https://github.com/Kong/charts/tree/main/charts/kong
 version: 4.2.3
