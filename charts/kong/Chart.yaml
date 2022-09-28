@@ -13,7 +13,5 @@ maintainers:
 - name: rainest
   email: traines@konghq.com
 name: kong
-sources:
-  -
 version: 4.2.3
 appVersion: "2.7"
