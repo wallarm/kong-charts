@@ -12,6 +12,6 @@ maintainers:
   email: harry@konghq.com
 - name: rainest
   email: traines@konghq.com
-name: kong
+name: kong-preview
 version: 4.2.3
 appVersion: "2.7"
