@@ -1,0 +1,137 @@
+{{- if .Values.wallarm.enabled }}
+{{- if eq .Values.wallarm.tarantool.kind "Deployment" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    {{- include "kong.metaLabels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+  name: {{ include "kong.fullname" . }}-wallarm-tarantool
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.wallarm.tarantool.annotations }}
+  annotations: {{ toYaml .Values.wallarm.tarantool.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "kong.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+  replicas: {{ .Values.wallarm.tarantool.replicaCount }}
+  template:
+    metadata:
+      labels:
+        {{- include "kong.metaLabels" . | nindent 8 }}
+        app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+    spec:
+      {{- if .Values.wallarm.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.wallarm.imagePullSecrets | indent 8 }}
+      {{- end }}
+      initContainers:
+{{ include "wallarm.initContainer.addNode" . | indent 8 }}
+{{ include "wallarm.initContainer.exportEnv" . | indent 8 }}
+      containers:
+{{ include "wallarm.container.cron" . | indent 8 }}
+        - name: tarantool
+{{- if .Values.wallarm.tarantool.image }}
+  {{- with .Values.wallarm.tarantool.image }}
+          image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+          image: "wallarm/ingress-tarantool:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          env:
+            - name: SLAB_ALLOC_ARENA
+              value: "{{ .Values.wallarm.tarantool.arena }}"
+          securityContext:
+            {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ template "wallarm.tarantoolPort" . }}
+            initialDelaySeconds: {{ .Values.wallarm.tarantool.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.wallarm.tarantool.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.wallarm.tarantool.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.wallarm.tarantool.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.wallarm.tarantool.livenessProbe.failureThreshold }}
+          ports:
+            - name: tarantool
+              containerPort: {{ template "wallarm.tarantoolPort" . }}
+              protocol: TCP
+          resources:
+{{ toYaml .Values.wallarm.tarantool.resources | indent 12 }}
+        - name: heartbeat
+{{- if .Values.wallarm.heartbeat.image }}
+  {{- with .Values.wallarm.heartbeat.image }}
+          image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+          image: "wallarm/ingress-ruby:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          command: ["/opt/wallarm/ruby/usr/share/wallarm-common/synccloud"]
+          env:
+          - name: WALLARM_API_HOST
+            value: {{ .Values.wallarm.apiHost | default "api.wallarm.com" }}
+          - name: WALLARM_API_PORT
+            value: {{ .Values.wallarm.apiPort | default "444" | quote }}
+          - name: WALLARM_API_USE_SSL
+            {{- if or (.Values.wallarm.apiSSL) (eq (.Values.wallarm.apiSSL | toString) "<nil>") }}
+            value: "true"
+            {{- else }}
+            value: "false"
+            {{- end }}
+          - name: WALLARM_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                key: token
+                name: {{ template "wallarm.wallarmSecret" . }}
+          - name: WALLARM_SYNCNODE
+            value: "no"
+          securityContext:
+          {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+          - mountPath: /etc/wallarm
+            name: wallarm
+          resources:
+{{ toYaml .Values.wallarm.heartbeat.resources | indent 12 }}
+        - name: wallarm-appstructure
+{{- if (index .Values "wallarm" "wallarm-appstructure" "image") }}
+  {{- with (index .Values "wallarm" "wallarm-appstructure" "image") }}
+          image: "{{ .repository }}:{{ .tag }}"
+  {{- end }}
+{{- else }}
+          image: "wallarm/ingress-python:{{ .Values.wallarm.image.tag }}"
+{{- end }}
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          securityContext:
+          {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+          - mountPath: /etc/wallarm
+            name: wallarm
+          resources:
+{{ toYaml (index .Values "wallarm" "wallarm-appstructure" "resources") | indent 12 }}
+    {{- if .Values.wallarm.tarantool.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.wallarm.tarantool.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.wallarm.tarantool.tolerations }}
+      tolerations:
+{{ toYaml .Values.wallarm.tarantool.tolerations | indent 8 }}
+    {{- end }}
+    {{- if .Values.wallarm.tarantool.affinity }}
+      affinity:
+{{ toYaml .Values.wallarm.tarantool.affinity | indent 8 }}
+    {{- end }}
+      securityContext:
+      {{- include "kong.podsecuritycontext" . | nindent 8 }}
+      volumes:
+        - name: wallarm
+          emptyDir: {}
+        - name: wallarm-acl
+          emptyDir: {}
+        - name: wallarm-cron
+          configMap:
+            name: {{ template "wallarm.tarantoolCronConfig" . }}
+{{- end }}
+{{- end }}
