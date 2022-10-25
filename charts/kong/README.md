@@ -11,10 +11,10 @@ This chart bootstraps all the components needed to run Kong on a
 ## TL;DR;
 
 ```bash
-$ helm repo add kong https://charts.konghq.com
+$ helm repo add wallarm https://charts.wallarm.com
 $ helm repo update
 
-$ helm install kong/kong --generate-name
+$ helm install wallarm/kong --generate-name
 ```
 
 ## Table of contents
@@ -89,10 +89,10 @@ $ helm install kong/kong --generate-name
 To install Kong:
 
 ```bash
-$ helm repo add kong https://charts.konghq.com
+$ helm repo add wallarm https://charts.wallarm.com
 $ helm repo update
 
-$ helm install kong/kong --generate-name
+$ helm install wallarm/kong --generate-name
 ```
 
 ## Uninstall
@@ -454,7 +454,7 @@ listens if you do not provide your own. The chart can create
 configure them for you. To use this integration, install cert-manager, create
 an issuer, set `certificates.enabled: true` in values.yaml, and set your issuer
 name in `certificates.issuer` or `certificates.clusterIssuer` depending on the
-issuer type. 
+issuer type.
 
 If you do not have an issuer available, you can install the example [self-signed ClusterIssuer](https://cert-manager.io/docs/configuration/selfsigned/#bootstrapping-ca-issuers)
 and set `certificates.clusterIssuer: selfsigned-issuer` for testing. You
@@ -816,11 +816,11 @@ containerSecurityContext: # run as root to bind to lower ports
   runAsUser: 0
 ```
 
-**Note:** The default `podAnnotations` values disable inbound proxying for Kuma 
-and Istio. This is appropriate when using Kong as a gateway for external 
+**Note:** The default `podAnnotations` values disable inbound proxying for Kuma
+and Istio. This is appropriate when using Kong as a gateway for external
 traffic inbound into the cluster.
 
-If you want to use Kong as an internal proxy within the cluster network, you 
+If you want to use Kong as an internal proxy within the cluster network, you
 should enable inbound the inbound mesh proxies:
 
 ```yaml

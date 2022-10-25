@@ -1,4 +1,4 @@
-# Wallarm Kong Helm Charts [PREVIEW]
+# Wallarm Kong Helm Charts
 
 This is the official Helm Charts repository for installing Kong on Kubernetes.
 
@@ -9,10 +9,10 @@ $ helm repo add wallarm https://charts.wallarm.com
 $ helm repo update
 
 # Helm 2
-$ helm install wallarm/kong-preview
+$ helm install wallarm/kong
 
 # Helm 3
-$ helm install wallarm/kong-preview --generate-name --set ingressController.installCRDs=false
+$ helm install wallarm/kong --generate-name --set ingressController.installCRDs=false
 ```
 
 ## Documentation
