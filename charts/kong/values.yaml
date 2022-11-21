@@ -118,7 +118,7 @@ extraLabels: {}
 # Specify Kong's Docker image and repository details here
 image:
   repository: wallarm/kong
-  tag: "3.0-ubuntu-4.2"
+  tag: "3.0.1-ubuntu-4.4"
   # Kong Enterprise
   # repository: kong/kong-gateway
   # tag: "3.0"
@@ -1106,7 +1106,7 @@ extraObjects: []
 # Wallarm configuration (https://docs.wallarm.com/)
 wallarm:
   image:
-    tag: "4.2.1-1"
+    tag: "4.4.0-1"
   enabled: true
   apiHost: api.wallarm.com
   apiPort: 443
