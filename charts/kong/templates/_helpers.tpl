@@ -340,7 +340,6 @@ spec:
   - name: kong-{{ .serviceName }}
     port: {{ .http.servicePort }}
     targetPort: {{ .http.containerPort }}
-    appProtocol: http
   {{- if (and (or (eq .type "LoadBalancer") (eq .type "NodePort")) (not (empty .http.nodePort))) }}
     nodePort: {{ .http.nodePort }}
   {{- end }}
@@ -351,13 +350,21 @@ spec:
   - name: kong-{{ .serviceName }}-tls
     port: {{ .tls.servicePort }}
     targetPort: {{ .tls.overrideServiceTargetPort | default .tls.containerPort }}
-    appProtocol: https
   {{- if (and (or (eq .type "LoadBalancer") (eq .type "NodePort")) (not (empty .tls.nodePort))) }}
     nodePort: {{ .tls.nodePort }}
   {{- end }}
     protocol: TCP
   {{- end }}
   {{- if (hasKey . "stream") }}
+    {{- $defaultProtocol := "TCP" }}
+    {{- if (hasSuffix "udp-proxy" .serviceName) }}
+      {{- $defaultProtocol = "UDP" }}
+    {{- end }}
+    {{- range $index, $streamEntry := .stream }}
+      {{- if (not (hasKey $streamEntry "protocol")) }}
+        {{- $_ := set $streamEntry "protocol" $defaultProtocol }}
+      {{- end }}
+    {{- end }}
   {{- range .stream }}
   - name: stream{{ if (eq (default "TCP" .protocol) "UDP") }}udp{{ end }}-{{ .containerPort }}
     port: {{ .servicePort }}
@@ -642,14 +649,23 @@ The name of the service used for the ingress controller's validation webhook
     secretName: {{ .name }}
 {{- end }}
 {{- end }}
+
 {{- if (and (not .Values.ingressController.enabled) (eq .Values.env.database "off")) }}
+{{- $dblessSourceCount := (add (.Values.dblessConfig.configMap | len | min 1) (.Values.dblessConfig.secret | len | min 1) (.Values.dblessConfig.config | len | min 1)) -}}
+{{- if gt $dblessSourceCount 1 -}}
+    {{- fail "Ambiguous configuration: only one of of .Values.dblessConfig.configMap, .Values.dblessConfig.secret, and .Values.dblessConfig.config can be set." -}}
 - name: kong-custom-dbless-config-volume
+  {{- if .Values.dblessConfig.configMap }}
   configMap:
-    {{- if .Values.dblessConfig.configMap }}
     name: {{ .Values.dblessConfig.configMap }}
-    {{- else }}
+  {{- else if .Values.dblessConfig.secret }}
+  secret:
+    secretName: {{ .Values.dblessConfig.secret }}
+  {{- else }}
+  configMap:
     name: {{ template "kong.dblessConfig.fullname" . }}
-    {{- end }}
+  {{- end }}
+{{- end }}
 {{- end }}
 {{- if .Values.ingressController.admissionWebhook.enabled }}
 - name: webhook-cert
@@ -708,6 +724,8 @@ The name of the service used for the ingress controller's validation webhook
 {{- end }}
 {{- end }}
 {{- end }}
+{{- $dblessSourceCount := (add (.Values.dblessConfig.configMap | len | min 1) (.Values.dblessConfig.secret | len | min 1) (.Values.dblessConfig.config | len | min 1)) -}}
+{{- if gt $dblessSourceCount 1 -}}
 {{- if (and (not .Values.ingressController.enabled) (eq .Values.env.database "off")) }}
 - name: kong-custom-dbless-config-volume
   mountPath: /kong_dbless/
@@ -715,6 +733,7 @@ The name of the service used for the ingress controller's validation webhook
 {{- range .Values.secretVolumes }}
 - name:  {{ . }}
   mountPath: /etc/secrets/{{ . }}
+{{- end }}
 {{- end }}
 {{- range .Values.plugins.configMaps }}
 {{- $mountPath := printf "/opt/kong/plugins/%s" .pluginName }}
@@ -766,7 +785,7 @@ The name of the service used for the ingress controller's validation webhook
 {{- range .Values.plugins.secrets -}}
   {{ $myList = append $myList .pluginName -}}
 {{- end }}
-{{- $myList | join "," -}}
+{{- $myList | uniq | join "," -}}
 {{- end -}}
 
 {{- define "kong.wait-for-db" -}}
@@ -1086,7 +1105,10 @@ the template that it itself is using form the above sections.
 {{- end }}
 
 {{- if (and (not .Values.ingressController.enabled) (eq .Values.env.database "off")) }}
+{{- $dblessSourceCount := (add (.Values.dblessConfig.configMap | len | min 1) (.Values.dblessConfig.secret | len | min 1) (.Values.dblessConfig.config | len | min 1)) -}}
+{{- if gt $dblessSourceCount 1 -}}
   {{- $_ := set $autoEnv "KONG_DECLARATIVE_CONFIG" "/kong_dbless/kong.yml" -}}
+{{- end }}
 {{- end }}
 
 {{- $_ := set $autoEnv "KONG_PLUGINS" (include "kong.plugins" .) -}}
@@ -1374,7 +1396,7 @@ resource roles into their separate templates.
   - get
   - patch
   - update
-{{- if (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1alpha2") }}
+{{- if or (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1alpha2") (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1beta1") }}
 - apiGroups:
   - gateway.networking.k8s.io
   resources:
@@ -1524,7 +1546,7 @@ Kubernetes Cluster-scoped resources it uses to build Kong configuration.
   - get
   - patch
   - update
-{{- if (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1alpha2") }}
+{{- if or (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1alpha2") (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1beta1") }}
 - apiGroups:
   - gateway.networking.k8s.io
   resources:
@@ -1558,5 +1580,15 @@ networking.k8s.io/v1
 networking.k8s.io/v1beta1
 {{- else -}}
 extensions/v1beta1
+{{- end -}}
+{{- end -}}
+
+{{- define "kong.autoscalingVersion" -}}
+{{- if (.Capabilities.APIVersions.Has "autoscaling/v2") -}}
+autoscaling/v2
+{{- else if (.Capabilities.APIVersions.Has "autoscaling/v2beta2") -}}
+autoscaling/v2beta2
+{{- else -}}
+autoscaling/v1
 {{- end -}}
 {{- end -}}

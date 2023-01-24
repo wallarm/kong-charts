@@ -17,6 +17,8 @@
 {{- if $certSecret }}
 {{- $certCert = (b64dec (get $certSecret.data "tls.crt")) -}}
 {{- $certKey = (b64dec (get $certSecret.data "tls.key")) -}}
+{{- end }}
+{{- if $caSecret }}
 {{- $caCert = (b64dec (get $caSecret.data "tls.crt")) -}}
 {{- $caKey = (b64dec (get $caSecret.data "tls.key")) -}}
 {{- end }}
@@ -56,6 +58,9 @@ webhooks:
     - kongplugins
 {{- if (semverCompare ">= 2.0.4" (include "kong.effectiveVersion" .Values.ingressController.image)) }}
     - kongclusterplugins
+{{- end }}
+{{- if (semverCompare ">= 2.8.0" (include "kong.effectiveVersion" .Values.ingressController.image)) }}
+    - kongingresses
 {{- end }}
   - apiGroups:
     - ''
