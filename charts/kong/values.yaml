@@ -1111,7 +1111,7 @@ extraObjects: []
 # Wallarm configuration (https://docs.wallarm.com/)
 wallarm:
   image:
-    tag: "4.4.0-1"
+    tag: "4.4.2-1"
   enabled: true
   apiHost: api.wallarm.com
   apiPort: 443
@@ -1194,6 +1194,8 @@ wallarm:
       syncMarkers:
         schedule: "* * * * *"
         timeout: 1h
+      weakJwtDetect:
+        schedule: "* * * * *"
     resources: {}
   exportenv:
     resources: {}
