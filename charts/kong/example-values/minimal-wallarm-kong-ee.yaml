@@ -4,7 +4,7 @@ wallarm:
 
 image:
   repository: wallarm/kong-ee-preview
-  tag: "3.0.1-ubuntu-4.4"
+  tag: "3.1.0-ubuntu-4.4"
   # See instructions regarding enterprise licenses at https://github.com/Kong/charts/blob/master/charts/kong/README.md#kong-enterprise-license
   license_secret: kong-enterprise-license # CHANGEME
   vitals:
@@ -22,4 +22,4 @@ ingressController:
   installCRDs: false
   image:
     repository: kong/kubernetes-ingress-controller
-    tag: "2.7"
+    tag: "2.8"

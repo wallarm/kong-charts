@@ -4,11 +4,11 @@ wallarm:
 
 image:
   repository: wallarm/kong
-  tag: "3.0.1-ubuntu-4.4"
+  tag: "3.1.0-ubuntu-4.4"
 
 ingressController:
   enabled: true
   installCRDs: false
   image:
     repository: wallarm/kong-kubernetes-ingress-controller
-    tag: "2.7"
+    tag: "2.8"
