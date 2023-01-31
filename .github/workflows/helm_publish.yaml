@@ -1,0 +1,44 @@
+name: Publish Helm
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: self-hosted-1cpu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+
+      - name: Import secrets
+        uses: hashicorp/vault-action@8fa61e909919a3f94952e9e07ace6b5a1114440b # v2.4.3
+        id: secrets
+        with:
+          exportEnv: false
+          url: ${{ secrets.VAULT_URL }}
+          role: ${{ secrets.VAULT_ROLE }}
+          method: kubernetes
+          secrets: |
+            kv-gitlab-ci/data/github/shared/github_token token | GITHUB_TOKEN
+
+      - name: Extract chart and app versions
+        run: |
+          echo "CHART_VERSION=$(yq -r '.version' charts/kong/Chart.yaml)" >> $GITHUB_ENV
+          echo "APP_VERSION=$(yq -r '.appVersion' charts/kong/Chart.yaml)" >> $GITHUB_ENV
+
+      - name: Publish Helm charts
+        uses: stefanprodan/helm-gh-pages@0ad2bb377311d61ac04ad9eb6f252fb68e207260 # master
+        with:
+          token: ${{ steps.secrets.outputs.GITHUB_TOKEN }}
+          charts_dir: ./charts
+          charts_url: https://charts.wallarm.com
+          linting: off
+          repository: helm-charts
+          branch: main
+          target_dir: kong
+          index_dir: .
+          app_version: ${{ env.APP_VERSION }}
+          chart_version: ${{ env.CHART_VERSION }}
