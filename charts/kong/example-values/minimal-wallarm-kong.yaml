@@ -4,7 +4,7 @@ wallarm:
 
 image:
   repository: wallarm/kong
-  tag: "3.1.0-ubuntu-4.4"
+  tag: "3.1.0-ubuntu-4.4.8"
 
 ingressController:
   enabled: true
