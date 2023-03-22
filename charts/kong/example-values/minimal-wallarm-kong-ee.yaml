@@ -4,7 +4,7 @@ wallarm:
 
 image:
   repository: wallarm/kong-ee-preview
-  tag: "3.1.0-ubuntu-4.4.8"
+  tag: "3.1.0-ubuntu-4.6.0"
   # See instructions regarding enterprise licenses at https://github.com/Kong/charts/blob/master/charts/kong/README.md#kong-enterprise-license
   license_secret: kong-enterprise-license # CHANGEME
   vitals:
