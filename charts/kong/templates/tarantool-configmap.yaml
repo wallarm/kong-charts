@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+    app.kubernetes.io/wallarm-component: {{ template "wallarm.tarantoolName" . }}
   name: {{ template "wallarm.tarantoolCronConfig" . }}
   namespace: {{ .Release.Namespace }}
 data:

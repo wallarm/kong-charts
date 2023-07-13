@@ -5,7 +5,7 @@ kind: DaemonSet
 metadata:
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+    app.kubernetes.io/wallarm-component: {{ template "wallarm.tarantoolName" . }}
   name: {{ include "kong.fullname" . }}-wallarm-tarantool
   namespace: {{ .Release.Namespace }}
   {{- if .Values.wallarm.tarantool.annotations }}
@@ -15,12 +15,12 @@ spec:
   selector:
     matchLabels:
       {{- include "kong.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+      app.kubernetes.io/wallarm-component: {{ template "wallarm.tarantoolName" . }}
   template:
     metadata:
       labels:
         {{- include "kong.metaLabels" . | nindent 8 }}
-        app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+        app.kubernetes.io/wallarm-component: {{ template "wallarm.tarantoolName" . }}
     spec:
       {{- if .Values.wallarm.imagePullSecrets }}
       imagePullSecrets:

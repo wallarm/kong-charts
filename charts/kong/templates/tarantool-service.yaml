@@ -7,7 +7,7 @@ metadata:
 {{- end }}
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
-    app.kubernetes.io/component: controller
+    app.kubernetes.io/functional-component: controller
   {{- if .Values.wallarm.tarantool.service.labels }}
     {{- toYaml .Values.wallarm.tarantool.service.labels | nindent 4 }}
   {{- end }}
@@ -21,5 +21,5 @@ spec:
       protocol: TCP
   selector:
     {{- include "kong.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+    app.kubernetes.io/wallarm-component: {{ template "wallarm.tarantoolName" . }}
 {{- end }}
