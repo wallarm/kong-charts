@@ -3,8 +3,8 @@ kind: ConfigMap
 metadata:
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
-    app.kubernetes.io/component: controller
-  name: {{ template "wallarm.controllerCronConfig" . }}
+    app.kubernetes.io/component: wallarm-controller
+  name: {{ template "wallarm.controller.name" . }}
   namespace: {{ .Release.Namespace }}
 data:
   crontab: |

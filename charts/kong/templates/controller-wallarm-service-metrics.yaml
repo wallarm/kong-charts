@@ -8,7 +8,7 @@ metadata:
 {{- end }}
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
-    app.kubernetes.io/component: controller
+    app.kubernetes.io/component: wallarm-controller
   {{- if .Values.wallarm.metrics.service.labels }}
     {{- toYaml .Values.wallarm.metrics.service.labels | nindent 4 }}
   {{- end }}
@@ -42,6 +42,5 @@ spec:
     {{- end }}
   selector:
     {{- include "kong.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: controller
 {{- end }}
 {{- end }}

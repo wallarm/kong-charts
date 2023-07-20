@@ -131,7 +131,7 @@ image:
   ## Secrets must be manually created in the namespace.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   ##
-  # pullSecrets:
+  pullSecrets: []
   #   - myRegistrKeySecretName
 
 # Specify Kong admin API service and listener configuration
@@ -1122,8 +1122,9 @@ wallarm:
     kind: Deployment
     service:
       annotations: {}
+      labels: {}
     replicaCount: 1
-    arena: "0.2"
+    arena: "1.0"
     livenessProbe:
       failureThreshold: 3
       initialDelaySeconds: 10
@@ -1140,13 +1141,12 @@ wallarm:
   metrics:
     port: 18080
     enabled: false
-
     service:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: /wallarm-metrics
         prometheus.io/port: "18080"
-
+      labels: {}
       # clusterIP: ""
 
       ## -- List of IP addresses at which the stats-exporter service is available

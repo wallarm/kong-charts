@@ -352,6 +352,6 @@ spec:
           emptyDir: {}
         - name: wallarm-cron
           configMap:
-            name: {{ template "wallarm.controllerCronConfig" . }}
+            name: {{ template "wallarm.controller.name" . }}
       {{- end }}
 {{- end }}
