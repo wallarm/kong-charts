@@ -5,8 +5,8 @@ kind: DaemonSet
 metadata:
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
-  name: {{ include "kong.fullname" . }}-wallarm-tarantool
+    app.kubernetes.io/component: wallarm-tarantool
+  name: {{ template "wallarm.tarantool.name" . }}
   namespace: {{ .Release.Namespace }}
   {{- if .Values.wallarm.tarantool.annotations }}
   annotations: {{ toYaml .Values.wallarm.tarantool.annotations | nindent 4 }}
@@ -14,17 +14,18 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- include "kong.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+      {{- include "wallarm.tarantool.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         {{- include "kong.metaLabels" . | nindent 8 }}
-        app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+        app.kubernetes.io/component: wallarm-tarantool
     spec:
-      {{- if .Values.wallarm.imagePullSecrets }}
+      {{- if .Values.image.pullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.wallarm.imagePullSecrets | indent 8 }}
+      {{- range .Values.image.pullSecrets }}
+        - name: {{ . }}
+      {{- end }}
       {{- end }}
       initContainers:
 {{ include "wallarm.initContainer.addNode" . | indent 8 }}
@@ -47,7 +48,7 @@ spec:
           {{ toYaml .Values.containerSecurityContext | nindent 12 }}
           livenessProbe:
             tcpSocket:
-              port: {{ template "wallarm.tarantoolPort" . }}
+              port: {{ template "wallarm.tarantool.port" . }}
             initialDelaySeconds: {{ .Values.wallarm.tarantool.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.wallarm.tarantool.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.wallarm.tarantool.livenessProbe.timeoutSeconds }}
@@ -55,7 +56,7 @@ spec:
             failureThreshold: {{ .Values.wallarm.tarantool.livenessProbe.failureThreshold }}
           ports:
             - name: tarantool
-              containerPort: {{ template "wallarm.tarantoolPort" . }}
+              containerPort: {{ template "wallarm.tarantool.port" . }}
               protocol: TCP
           resources:
 {{ toYaml .Values.wallarm.tarantool.resources | indent 12 }}
@@ -84,7 +85,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 key: token
-                name: {{ template "wallarm.wallarmSecret" . }}
+                name: {{ template "wallarm.token.name" . }}
           - name: WALLARM_SYNCNODE
             value: "no"
           securityContext:
@@ -131,6 +132,6 @@ spec:
           emptyDir: {}
         - name: wallarm-cron
           configMap:
-            name: {{ template "wallarm.tarantoolCronConfig" . }}
+            name: {{ template "wallarm.tarantool.name" . }}
 {{- end }}
 {{- end }}

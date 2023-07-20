@@ -7,19 +7,18 @@ metadata:
 {{- end }}
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
-    app.kubernetes.io/component: controller
+    app.kubernetes.io/component: wallarm-tarantool
   {{- if .Values.wallarm.tarantool.service.labels }}
     {{- toYaml .Values.wallarm.tarantool.service.labels | nindent 4 }}
   {{- end }}
-  name: {{ include "kong.fullname" . }}-wallarm-tarantool
+  name: {{ template "wallarm.tarantool.name" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   type: ClusterIP
   ports:
     - name: tarantool
-      port: {{ template "wallarm.tarantoolPort" . }}
+      port: {{ template "wallarm.tarantool.port" . }}
       protocol: TCP
   selector:
-    {{- include "kong.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ template "wallarm.tarantoolName" . }}
+    {{- include "wallarm.tarantool.selectorLabels" . | nindent 4 }}
 {{- end }}

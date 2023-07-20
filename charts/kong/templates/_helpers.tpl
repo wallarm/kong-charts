@@ -63,11 +63,16 @@ Create the name of the service account to use
 {{- end -}}
 {{- end -}}
 
-{{- define "wallarm.tarantoolPort" -}}3313{{- end -}}
-{{- define "wallarm.tarantoolName" -}}{{ .Release.Name }}-{{ template "kong.name" . }}-wallarm-tarantool{{- end -}}
-{{- define "wallarm.tarantoolCronConfig" -}}{{ template "wallarm.tarantoolName" . }}-cron{{- end -}}
-{{- define "wallarm.controllerCronConfig" -}}{{ include "kong.fullname" . | lower }}-cron{{- end -}}
-{{- define "wallarm.wallarmSecret" -}}{{ .Release.Name }}-{{ template "kong.name" . }}-secret{{- end -}}
+{{- define "wallarm.tarantool.selectorLabels" -}}
+app.kubernetes.io/name: {{ template "kong.name" . }}
+app.kubernetes.io/component: wallarm-tarantool
+app.kubernetes.io/instance: "{{ .Release.Name }}"
+{{- end -}}
+
+{{- define "wallarm.tarantool.port" -}}3313{{- end -}}
+{{- define "wallarm.tarantool.name" -}}{{ include "kong.fullname" . | trunc 44 }}-wallarm-tarantool{{- end -}}
+{{- define "wallarm.controller.name" -}}{{ include "kong.fullname" . | trunc 44 }}-wallarm-controller{{- end -}}
+{{- define "wallarm.token.name" -}}{{ include "kong.fullname" . | trunc 44 }}-wallarm-token{{- end -}}
 
 {{- define "wallarm.initContainer.addNode" -}}
 - name: addnode
@@ -102,7 +107,7 @@ Create the name of the service account to use
     valueFrom:
       secretKeyRef:
         key: token
-        name: {{ template "wallarm.wallarmSecret" . }}
+        name: {{ template "wallarm.token.name" . }}
   - name: WALLARM_SYNCNODE_OWNER
     value: kong
   - name: WALLARM_SYNCNODE_GROUP
@@ -202,7 +207,7 @@ Create the name of the service account to use
     valueFrom:
       secretKeyRef:
         key: token
-        name: {{ template "wallarm.wallarmSecret" . }}
+        name: {{ template "wallarm.token.name" . }}
   - name: WALLARM_SYNCNODE_OWNER
     value: kong
   - name: WALLARM_SYNCNODE_GROUP
@@ -896,7 +901,7 @@ Use the Pod security context defined in Values or set the UID by default
 - name: KONG_NGINX_HTTP_UPSTREAM
   value: >-
     wallarm_tarantool {
-        server {{ include "kong.fullname" . }}-wallarm-tarantool:3313 max_fails=0 fail_timeout=0 max_conns=16;
+        server {{ template "wallarm.tarantool.name" . }}:3313 max_fails=0 fail_timeout=0 max_conns=16;
         keepalive 16;
         keepalive_requests 100;
     }
