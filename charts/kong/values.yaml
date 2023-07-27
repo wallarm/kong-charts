@@ -1119,18 +1119,27 @@ wallarm:
   token: ""
   fallback: "on"
   tarantool:
-    kind: Deployment
-    service:
-      annotations: {}
-      labels: {}
-    replicaCount: 1
     arena: "1.0"
+    # Kind can be either Deployment or DaemonSet
+    kind: Deployment
+    replicaCount: 1
+    # Annotations to apply to Tarantool Deployment/DaemonSet
+    annotations: {}
+    # Annotations to apply to Tarantool pod
+    podAnnotations:
+      sidecar.istio.io/inject: false
+    service:
+      # Annotations to apply to Tarantool service
+      annotations: {}
+      # Labels to apply to Tarantool service
+      labels: {}
     livenessProbe:
       failureThreshold: 3
       initialDelaySeconds: 10
       periodSeconds: 10
       successThreshold: 1
       timeoutSeconds: 1
+    # Resources for Tarantool container
     resources: {}
   heartbeat:
     resources: {}

@@ -21,6 +21,9 @@ spec:
       labels:
         {{- include "kong.metaLabels" . | nindent 8 }}
         app.kubernetes.io/component: wallarm-tarantool
+      {{- if .Values.wallarm.tarantool.podAnnotations }}
+      annotations: {{ toYaml .Values.wallarm.tarantool.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
       {{- if .Values.image.pullSecrets }}
       imagePullSecrets:
