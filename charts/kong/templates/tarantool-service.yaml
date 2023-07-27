@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-{{- if .Values.wallarm.tarantool.service.annotations }}
+  {{- if .Values.wallarm.tarantool.service.annotations }}
   annotations: {{ toYaml .Values.wallarm.tarantool.service.annotations | nindent 4 }}
-{{- end }}
+  {{- end }}
   labels:
     {{- include "kong.metaLabels" . | nindent 4 }}
     app.kubernetes.io/component: wallarm-tarantool
-  {{- if .Values.wallarm.tarantool.service.labels }}
+    {{- if .Values.wallarm.tarantool.service.labels }}
     {{- toYaml .Values.wallarm.tarantool.service.labels | nindent 4 }}
-  {{- end }}
+    {{- end }}
   name: {{ template "wallarm.tarantool.name" . }}
   namespace: {{ .Release.Namespace }}
 spec:
