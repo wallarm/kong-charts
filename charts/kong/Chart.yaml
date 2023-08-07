@@ -16,7 +16,7 @@ name: kong
 sources:
 - https://github.com/Kong/charts/tree/main/charts/kong
 - https://github.com/wallarm/kong-charts/blob/main/charts/kong
-version: 4.6.2
+version: 4.6.3
 appVersion: "3.1"
 dependencies:
 - name: postgresql
