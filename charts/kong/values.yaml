@@ -1127,7 +1127,7 @@ wallarm:
     annotations: {}
     # Annotations to apply to Tarantool pod
     podAnnotations:
-      sidecar.istio.io/inject: false
+      sidecar.istio.io/inject: "false"
     service:
       # Annotations to apply to Tarantool service
       annotations: {}
